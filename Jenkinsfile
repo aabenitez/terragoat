@@ -2,10 +2,14 @@ pipeline {
     agent any
 
     environment {
-        // Cambiamos 'latest' por una versión específica (v1.18.0)
-        TERRASCAN_IMAGE = 'tenable/terrascan:1.18.0'
-        // Montamos directamente la carpeta de AWS para evitar el error de "directorio vacío"
-        DOCKER_ARGS = "-v ${WORKSPACE}/terraform/aws:/iac -w /iac"
+        // Imagen oficial de Terrascan
+        TERRASCAN_IMAGE = 'tenable/terrascan:latest'
+        
+        // Argumentos para Docker:
+        // -rm: Borra el contenedor al terminar
+        // -v ${WORKSPACE}:/data: Monta la carpeta de Jenkins dentro del contenedor en /data
+        // -w /data: Establece /data como directorio de trabajo
+        DOCKER_ARGS = '--rm -v ${WORKSPACE}:/data -w /data'
     }
 
     stages {
@@ -20,6 +24,8 @@ pipeline {
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: '*/master']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]],
                     userRemoteConfigs: [[url: 'https://github.com/aabenitez/terragoat.git']] 
                 ])
             }
@@ -28,27 +34,19 @@ pipeline {
         stage('Scan IaC - Terrascan') {
             steps {
                 script {
-                    echo "--- Iniciando Escaneo con Terrascan v1.18.0 ---"
-                    // Eliminamos el -d porque ya estamos montados en la carpeta correcta
+                    echo "--- Archivo: ec2.tf ---"                   
+                    sh "grep -C 5 'web_host_storage' terraform/aws/ec2.tf"
+                    
+                    echo "--- Iniciando Escaneo ---"
                     sh """
-                        docker pull ${TERRASCAN_IMAGE}
-                        docker run --rm ${DOCKER_ARGS} ${TERRASCAN_IMAGE} scan \
+                        docker run ${DOCKER_ARGS} ${TERRASCAN_IMAGE} scan \
                         -i terraform \
                         -t aws \
-                        --verbose > terrascan_report.txt || true
-                        
-                        cat terrascan_report.txt
+                        -d terraform/aws \
+                        --verbose || true
                     """
                 }
             }
-        }
-    }
-    
-    post {
-        always {
-            archiveArtifacts artifacts: 'terrascan_report.txt'
-            // Limpieza de imagen específica
-            sh "docker rmi ${TERRASCAN_IMAGE} || true"
         }
     }
 }
