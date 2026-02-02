@@ -18,25 +18,25 @@ pipeline {
                 echo "Descargando imagen de Terrascan..."
                 sh "docker pull ${TERRASCAN_IMAGE}"
 
-		// Debug: Listar archivos para ver dónde estamos realmente
-                sh "ls -R ${WORKSPACE}/terraform/aws"	
+                // Debug: Listar archivos para ver dónde estamos realmente
+                sh "ls -R ${WORKSPACE}/terraform/aws"
             }
         }
 
-	stage('Security Scan') {
-	    steps {
-	        script {
-		     sh """
-	                docker run --rm \
-	                    -v ${WORKSPACE}:/project \
-	                    -w /project \
+        stage('Security Scan') {
+            steps {
+                 script {
+                     sh """
+                        docker run --rm \
+	                    -v \$(pwd):/iac \
+	                    -w /iac \
 	                    tenable/terrascan:latest scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
 	                
 	                echo "--- RESULTADOS DEL ESCANEO ---"
 	                cat terrascan_report.txt
 	            """
 	        }
-	    }
+            }
 	}
     }
 
