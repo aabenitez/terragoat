@@ -26,16 +26,19 @@ pipeline {
 	stage('Security Scan') {
             steps {
                 script {
-                    echo "Escaneando archivos de AWS..."
-                    sh """
+		    sh "docker pull ${TERRASCAN_IMAGE}"
+                    
+                    // Ejecución y salida por consola para visibilidad inmediata
+                    
+		    sh """
                         docker run --rm \
-                            -v \$(pwd)/terraform/aws:/iac \
-                            -w /iac \
-                            ${TERRASCAN_IMAGE} scan -t aws -i terraform > terrascan_report.txt || true
+                            -v ${WORKSPACE}:/project \
+                            -w /project \
+                            ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
                     """
-                }
-            }
-        }
+		}
+	    }
+	}
     }
 
     post {
