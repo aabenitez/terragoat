@@ -17,6 +17,9 @@ pipeline {
             steps {
                 echo "Descargando imagen de Terrascan..."
                 sh "docker pull ${TERRASCAN_IMAGE}"
+
+		// Debug: Listar archivos para ver dónde estamos realmente
+                sh "ls -R ${WORKSPACE}/terraform/aws"	
             }
         }
 
@@ -26,7 +29,7 @@ pipeline {
                     echo "Escaneando archivos de AWS..."
                     sh """
                         docker run --rm \
-                            -v ${WORKSPACE}/terraform/aws:/iac \
+                            -v \$(pwd)/terraform/aws:/iac \
                             -w /iac \
                             ${TERRASCAN_IMAGE} scan -t aws -i terraform > terrascan_report.txt || true
                     """
