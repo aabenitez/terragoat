@@ -23,16 +23,13 @@ pipeline {
 	stage('Security Scan') {
             steps {
                 script {
-                    echo "Escaneando subdirectorio terraform/aws/..."
-                    // Ejecutamos el contenedor mapeando el directorio actual
-                    // El comando '|| true' evita que el pipeline se detenga si encuentra fallos, 
-                    // permitiendo que el stage de limpieza siempre se ejecute.
+                    echo "Escaneando archivos de AWS..."
                     sh """
                         docker run --rm \
-                            -v ${WORKSPACE}:/iac \
+                            -v ${WORKSPACE}/terraform/aws:/iac \
                             -w /iac \
-                        ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true    
-                    """                
+                            ${TERRASCAN_IMAGE} scan -t aws -i terraform > terrascan_report.txt || true
+                    """
                 }
             }
         }
