@@ -26,17 +26,12 @@ pipeline {
 	stage('Security Scan') {
 	    steps {
 	        script {
-	            // Creamos una carpeta limpia para el home del usuario del contenedor
-	            sh "mkdir -p ${WORKSPACE}/terrascan_home && chmod 777 ${WORKSPACE}/terrascan_home"
-            
-	            sh """
+		     sh """
 	                docker run --rm \
-	                    -u \$(id -u):\$(id -g) \
 	                    -v ${WORKSPACE}:/project \
-	                    -e HOME=/project/terrascan_home \
 	                    -w /project \
-	                    ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
-                
+	                    tenable/terrascan:latest scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
+	                
 	                echo "--- RESULTADOS DEL ESCANEO ---"
 	                cat terrascan_report.txt
 	            """
