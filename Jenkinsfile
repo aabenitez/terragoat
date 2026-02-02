@@ -2,18 +2,12 @@ pipeline {
     agent any
 
     environment {
-        // Imagen oficial de Terrascan
-        TERRASCAN_IMAGE = 'tenable/terrascan:latest'
-        
-        // Argumentos para Docker:
-        // -rm: Borra el contenedor al terminar
-        // -v ${WORKSPACE}:/data: Monta la carpeta de Jenkins dentro del contenedor en /data
-        // -w /data: Establece /data como directorio de trabajo
-        DOCKER_ARGS = '--rm -v ${WORKSPACE}:/data -w /data'
+        // Version pinning para estabilidad
+        TERRASCAN_IMAGE = 'tenable/terrascan:1.18.0'
     }
 
     stages {
-        stage('Limpieza') {
+        stage('Limpieza Inicial') {
             steps {
                 cleanWs()
             }
@@ -21,12 +15,11 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                // Jenkins descargará el repo en su carpeta de WORKSPACE automáticamente
                 checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/master']],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]],
-                    userRemoteConfigs: [[url: 'https://github.com/aabenitez/terragoat.git']] 
+                    $class: 'GitSCM', 
+                    branches: [[name: '*/master']], 
+                    userRemoteConfigs: [[url: 'https://github.com/aabenitez/terragoat.git']]
                 ])
             }
         }
@@ -34,19 +27,28 @@ pipeline {
         stage('Scan IaC - Terrascan') {
             steps {
                 script {
-                    echo "--- Archivo: ec2.tf ---"                   
-                    sh "grep -C 5 'web_host_storage' terraform/aws/ec2.tf"
-                    
-                    echo "--- Iniciando Escaneo ---"
+                    echo "Ejecutando escaneo en la ruta de AWS..."
+                    // Montamos el WORKSPACE de Jenkins (donde se hizo el checkout) al contenedor
                     sh """
-                        docker run ${DOCKER_ARGS} ${TERRASCAN_IMAGE} scan \
-                        -i terraform \
-                        -t aws \
-                        -d terraform/aws \
-                        --verbose || true
+                        docker pull ${TERRASCAN_IMAGE}
+                        docker run --rm \
+                            -v ${WORKSPACE}/terraform/aws:/iac \
+                            -w /iac \
+                            ${TERRASCAN_IMAGE} scan -i terraform -t aws > terrascan_report.txt || true
+                        
+                        echo "--- REPORTE GENERADO ---"
+                        cat terrascan_report.txt
                     """
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'terrascan_report.txt', fingerprint: true
+            echo "Eliminando imagen ${TERRASCAN_IMAGE}..."
+            sh "docker rmi ${TERRASCAN_IMAGE} || true"
         }
     }
 }
