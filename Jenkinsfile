@@ -31,7 +31,7 @@ pipeline {
                         docker run --rm \
                             -v ${WORKSPACE}:/iac \
                             -w /iac \
-                            ${TERRASCAN_IMAGE} scan -t aws -i terraform/aws > terrascan_report.txt || true
+                        ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true    
                     """                
                 }
             }
