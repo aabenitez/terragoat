@@ -27,18 +27,18 @@ pipeline {
         stage('Scan IaC - Terrascan') {
             steps {
                 script {
-                    echo "Ejecutando escaneo en la ruta de AWS..."
-                    // Montamos el WORKSPACE de Jenkins (donde se hizo el checkout) al contenedor
-                    sh """
-                        docker pull ${TERRASCAN_IMAGE}
-                        docker run --rm \
-                            -v ${WORKSPACE}/terraform/aws:/iac \
-                            -w /iac \
-                            ${TERRASCAN_IMAGE} scan -i terraform -t aws > terrascan_report.txt || true
-                        
-                        echo "--- REPORTE GENERADO ---"
-                        cat terrascan_report.txt
-                    """
+		    // Entramos a la carpeta de AWS y ejecutamos Docker desde ahí
+                    dir('terraform/aws') {
+                        sh """
+                             docker pull ${TERRASCAN_IMAGE}
+                             docker run --rm \
+                                 -v \$(pwd):/iac \
+                                 -w /iac \
+                                 ${TERRASCAN_IMAGE} scan -i terraform -t aws > ../../terrascan_report.txt || true
+                        """
+                    }
+                    echo "--- REPORTE GENERADO ---"
+                    sh "cat terrascan_report.txt"
                 }
             }
         }
