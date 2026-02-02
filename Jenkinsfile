@@ -26,16 +26,20 @@ pipeline {
 	stage('Security Scan') {
 	    steps {
 	        script {
-	            sh "docker pull ${TERRASCAN_IMAGE}"
+	            // Creamos la carpeta donde Terrascan guardará sus políticas y config
+	            sh "mkdir -p ${WORKSPACE}/terrascan_config && chmod 777 ${WORKSPACE}/terrascan_config"
             
-	            // Usamos -u para evitar problemas de permisos y montamos el workspace
 	            sh """
-			    docker run --rm \
-			        -u \$(id -u):\$(id -g) \
-			        -v ${WORKSPACE}:/project \
-			        -w /project \
-			        ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws --config-path /project/.terrascan > terrascan_report.txt || true
-		    """
+	                docker run --rm \
+	                    -u \$(id -u):\$(id -g) \
+	                    -v ${WORKSPACE}:/project \
+	                    -v ${WORKSPACE}/terrascan_config:/.terrascan \
+	                    -w /project \
+	                    ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
+                
+	                echo "--- RESULTADOS DEL ESCANEO ---"
+	                cat terrascan_report.txt
+	            """
 	        }
 	    }
 	}
