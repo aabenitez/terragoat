@@ -17,14 +17,10 @@ pipeline {
                     echo "Iniciando escaneo de infraestructura en terraform/aws..."
                     // Eliminamos el flag -u para evitar líos de permisos y montamos la subcarpeta directo a /iac
                     sh """
-                        docker pull ${TERRASCAN_IMAGE}
-                        docker run --rm \
-                            -v ${WORKSPACE}/terraform/aws:/iac \
-                            -w /iac \
-                            ${TERRASCAN_IMAGE} scan -t aws -i terraform > terrascan_report.txt || true
-                        
-                        echo "--- RESULTADOS DEL ESCANEO ---"
-                        cat terrascan_report.txt
+			docker run --rm \
+			    -v ${WORKSPACE}/terraform/aws:/iac \
+			    -w /iac \
+			    ${TERRASCAN_IMAGE} scan -i terraform -t aws --verbose || true
                     """
                 }
             }
