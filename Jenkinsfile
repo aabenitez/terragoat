@@ -30,15 +30,12 @@ pipeline {
             
 	            // Usamos -u para evitar problemas de permisos y montamos el workspace
 	            sh """
-	                docker run --rm \
-	                    -u \$(id -u):\$(id -g) \
-	                    -v ${WORKSPACE}:/project \
-	                    -w /project \
-	                    ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
-                
-	                echo "--- CONTENIDO DEL REPORTE ---"
-	                cat terrascan_report.txt
-	            """
+			    docker run --rm \
+			        -u \$(id -u):\$(id -g) \
+			        -v ${WORKSPACE}:/project \
+			        -w /project \
+			        ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws --config-path /project/.terrascan > terrascan_report.txt || true
+		    """
 	        }
 	    }
 	}
