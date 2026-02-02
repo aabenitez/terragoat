@@ -26,18 +26,23 @@ pipeline {
 
         stage('Scan IaC - Terrascan') {
             steps {
-                script {
+                script {     
 		    // Entramos a la carpeta de AWS y ejecutamos Docker desde ahí
-                    dir('terraform/aws') {
+                    dir('terraform') {
+			// 🔍 DEBUG: ver estructura real de archivos
+	                sh "echo '--- CONTENIDO DEL WORKSPACE ACTUAL ---'"
+	                sh "ls -R ."
+
                         sh """
-                             docker pull ${TERRASCAN_IMAGE}
-                             docker run --rm \
-                                 -v \$(pwd):/iac \
-                                 -w /iac \
-                                 ${TERRASCAN_IMAGE} scan -i terraform -t aws > ../../terrascan_report.txt || true
+			    docker pull ${TERRASCAN_IMAGE}
+			    docker run --rm \
+		                -v \$(pwd):/iac \
+		                -w /iac \
+		                ${TERRASCAN_IMAGE} scan -i terraform -t aws -r > ../terrascan_report.txt || true
                         """
                     }
-                    echo "--- REPORTE GENERADO ---"
+                    
+		    echo "--- REPORTE GENERADO ---"
                     sh "cat terrascan_report.txt"
                 }
             }
