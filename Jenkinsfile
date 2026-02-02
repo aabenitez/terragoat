@@ -24,19 +24,22 @@ pipeline {
         }
 
 	stage('Security Scan') {
-            steps {
-                script {
-		    sh "docker pull ${TERRASCAN_IMAGE}"
-                    
-                    // Ejecución y salida por consola para visibilidad inmediata
-                    
-		    sh """
-                        docker run --rm \
-                            -v ${WORKSPACE}:/project \
-                            -w /project \
-                            ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
-                    """
-		}
+	    steps {
+	        script {
+	            sh "docker pull ${TERRASCAN_IMAGE}"
+            
+	            // Usamos -u para evitar problemas de permisos y montamos el workspace
+	            sh """
+	                docker run --rm \
+	                    -u \$(id -u):\$(id -g) \
+	                    -v ${WORKSPACE}:/project \
+	                    -w /project \
+	                    ${TERRASCAN_IMAGE} scan -t aws -i terraform -d terraform/aws > terrascan_report.txt || true
+                
+	                echo "--- CONTENIDO DEL REPORTE ---"
+	                cat terrascan_report.txt
+	            """
+	        }
 	    }
 	}
     }
