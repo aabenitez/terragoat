@@ -35,7 +35,7 @@ pipeline {
 
 			sh """
                             docker run --rm --user root -v \$(pwd):/iac -w /iac \
-                            ${TERRASCAN_IMAGE} scan -i terraform -t aws --recursive > terrascan_report.txt 2>&1 || true
+                            ${TERRASCAN_IMAGE} scan -t aws --recursive > terrascan_report.txt 2>&1 || true
                         """   
 
                         echo "--- REPORTE GENERADO ---"
