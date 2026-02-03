@@ -32,11 +32,15 @@ pipeline {
                         sh "docker pull ${TERRASCAN_IMAGE}"
                 
                         sh "docker run --rm --user root -v \$(pwd):/iac -w /iac ${TERRASCAN_IMAGE} scan -t aws -d . --recursive --log-output-file terrascan_report.txt || true"
-                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac alpine chmod 644 terrascan_report.txt"       
-
+                        
                         echo "--- REPORTE GENERADO ---"
-                        sh "cat terrascan_report.txt"
-                    }    
+
+                        // Usamos Docker para leer el archivo como root
+                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac alpine cat terrascan_report.txt"
+
+                        // Cambiamos el dueño para que Jenkins pueda procesar el artefacto en el bloque post
+                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac alpine chown \$(id -u):\$(id -g) terrascan_report.txt || true"
+                     }    
                 }
             }
         }
