@@ -26,26 +26,25 @@ pipeline {
 
         stage('Scan IaC - Terrascan') {
             steps {
-                script {
-                    // 1. Generamos el reporte con sudo si es necesario para escribir en el host
-                    // Usamos -f json para que sea fácil de leer después
-                    sh 'sudo docker run --rm -v ${WORKSPACE}/terraform:/iac tenable/terrascan:latest scan -t aws -d . -o json > terrascan_result.json'
+		script {
+                    // Se utiliza --user root para garantizar permisos de escritura en el volumen
+                    // Se elimina 'sudo' ya que el entorno de Jenkins no lo tiene instalado
+                    sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac -o json > terrascan_result.json"
 
-                    // 2. Cambiamos el dueño del archivo a jenkins para que readFile no tenga problemas de permisos
-                    sh 'sudo chown jenkins:jenkins terrascan_result.json'
-
-                    // 3. Usamos readFile para cargar el contenido en una variable de Groovy
-                    def reportContent = readFile "terrascan_result.json"
-
-                    // 4. (Opcional) Procesar el contenido
-                    if (reportContent.contains('"low_severity": 0')) {
-                        echo "¡Excelente! No se encontraron vulnerabilidades de severidad baja."
+                    // Validar si el archivo existe antes de leerlo
+                    if (fileExists("terrascan_result.json")) {
+                        def reportContent = readFile "terrascan_result.json"
+                        
+                        if (reportContent.contains('"low_severity": 0')) {
+                            echo "¡Excelente! No se encontraron vulnerabilidades de severidad baja."
+                        } else {
+                            echo "Se detectaron hallazgos en el reporte."
+                        }
+                        
+                        echo "Contenido del reporte cargado correctamente."
                     } else {
-                        echo "Se detectaron hallazgos en el reporte."
+                        error "El archivo terrascan_result.json no fue generado."
                     }
-
-                    // Mostramos un extracto en los logs de Jenkins
-                    echo "Contenido del reporte: ${reportContent}"  
                 }
             }
         }
@@ -53,7 +52,8 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'terraform/terrascan_report.txt', fingerprint: true, allowEmptyArchive: true
+            // Se actualizó el nombre del artefacto para coincidir con el archivo generado
+            archiveArtifacts artifacts: 'terrascan_result.json', fingerprint: true, allowEmptyArchive: true
             echo "Eliminando imagen ${TERRASCAN_IMAGE}..."
             sh "docker rmi ${TERRASCAN_IMAGE} || true"
         }
