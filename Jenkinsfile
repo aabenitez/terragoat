@@ -39,10 +39,10 @@ pipeline {
 			"""
 			
 			sh "cat terrascan_report.txt"
-                    }
-                    
-		    echo "--- REPORTE GENERADO ---"
-                    sh "cat terrascan_report.txt"
+
+			sh "echo '--- ARCHIVOS EN WORKSPACE ---'"
+			sh "ls -l .."
+                    }	    
                 }
             }
         }
