@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Version pinning para estabilidad
-        TERRASCAN_IMAGE = 'tenable/terrascan:1.18.0'
+        TERRASCAN_IMAGE = 'tenable/terrascan:latest'
     }
 
     stages {
