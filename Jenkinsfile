@@ -29,11 +29,9 @@ pipeline {
                 script {     
 		    // Entramos a la carpeta de AWS y ejecutamos Docker desde ahí
                     dir('terraform') {
-                        sh "docker pull tenable/terrascan:latest"
+                        sh "docker pull ${TERRASCAN_IMAGE}"
                 
-                        // Usamos comillas simples para el comando sh para evitar problemas de escape
-                        // y aseguramos que el path sea el actual '.'
-                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac tenable/terrascan:latest scan -t aws -d . --recursive > terrascan_report.txt 2>&1 || true"
+                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac ${TERRASCAN_IMAGE} scan -t aws -d . --recursive --log-output-file terrascan_report.txt"
 
                         echo "--- REPORTE GENERADO ---"
                         sh "cat terrascan_report.txt"
