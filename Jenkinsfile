@@ -26,25 +26,26 @@ pipeline {
 
         stage('Scan IaC - Terrascan') {
             steps {
-                script {     
-		    // Entramos a la carpeta de AWS y ejecutamos Docker desde ahí
-                    dir('terraform') {
-                        sh "docker pull ${TERRASCAN_IMAGE}"
+                script {
+                    // 1. Generamos el reporte con sudo si es necesario para escribir en el host
+                    // Usamos -f json para que sea fácil de leer después
+                    sh 'sudo docker run --rm -v ${WORKSPACE}/terraform:/iac tenable/terrascan:latest scan -t aws -d . -o json > terrascan_result.json'
 
-			sh "ls -R"
-                
-                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac ${TERRASCAN_IMAGE} scan -t aws -d . --recursive --log-output-file terrascan_report.txt || true"
-                        
-                        echo "--- REPORTE GENERADO ---"
+                    // 2. Cambiamos el dueño del archivo a jenkins para que readFile no tenga problemas de permisos
+                    sh 'sudo chown jenkins:jenkins terrascan_result.json'
 
-			sh "ls -R"
+                    // 3. Usamos readFile para cargar el contenido en una variable de Groovy
+                    def reportContent = readFile "terrascan_result.json"
 
-                        // Usamos Docker para leer el archivo como root
-                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac alpine cat terrascan_report.txt"
+                    // 4. (Opcional) Procesar el contenido
+                    if (reportContent.contains('"low_severity": 0')) {
+                        echo "¡Excelente! No se encontraron vulnerabilidades de severidad baja."
+                    } else {
+                        echo "Se detectaron hallazgos en el reporte."
+                    }
 
-                        // Cambiamos el dueño para que Jenkins pueda procesar el artefacto en el bloque post
-                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac alpine chown \$(id -u):\$(id -g) terrascan_report.txt || true"
-                     }    
+                    // Mostramos un extracto en los logs de Jenkins
+                    echo "Contenido del reporte: ${reportContent}"  
                 }
             }
         }
