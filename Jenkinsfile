@@ -31,7 +31,7 @@ pipeline {
                     dir('terraform') {
                         sh "docker pull ${TERRASCAN_IMAGE}"
                 
-                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac ${TERRASCAN_IMAGE} scan -t aws -d . --recursive --log-output-file terrascan_report.txt || true"
+                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac ${TERRASCAN_IMAGE} scan -t aws -d . --recursive > terrascan_report.txt || true"
                         
                         echo "--- REPORTE GENERADO ---"
 
