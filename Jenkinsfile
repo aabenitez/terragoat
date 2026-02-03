@@ -49,7 +49,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'terrascan_report.txt', fingerprint: true
+            archiveArtifacts artifacts: 'terraform/terrascan_report.txt', fingerprint: true, allowEmptyArchive: true
             echo "Eliminando imagen ${TERRASCAN_IMAGE}..."
             sh "docker rmi ${TERRASCAN_IMAGE} || true"
         }
