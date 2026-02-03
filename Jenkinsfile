@@ -30,10 +30,14 @@ pipeline {
 		    // Entramos a la carpeta de AWS y ejecutamos Docker desde ahí
                     dir('terraform') {
                         sh "docker pull ${TERRASCAN_IMAGE}"
+
+			sh "ls -R"
                 
-                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac ${TERRASCAN_IMAGE} scan -t aws -d . --recursive > terrascan_report.txt || true"
+                        sh "docker run --rm --user root -v \$(pwd):/iac -w /iac ${TERRASCAN_IMAGE} scan -t aws -d . --recursive --log-output-file terrascan_report.txt || true"
                         
                         echo "--- REPORTE GENERADO ---"
+
+			sh "ls -R"
 
                         // Usamos Docker para leer el archivo como root
                         sh "docker run --rm --user root -v \$(pwd):/iac -w /iac alpine cat terrascan_report.txt"
