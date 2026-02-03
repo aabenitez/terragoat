@@ -33,12 +33,12 @@ pipeline {
 	                sh "echo '--- CONTENIDO DEL WORKSPACE ACTUAL ---'"
 	                sh "ls -R ."
 
-			sh """
-                            docker pull ${TERRASCAN_IMAGE}
-                            docker run --rm -v \$(pwd):/iac -w /iac \
-                            ${TERRASCAN_IMAGE} scan -i terraform -t aws --recursive \
-                            > ../terrascan_report.txt || true
-                        """
+                        sh """
+			    docker run --rm -v \$(pwd):/iac -w /iac \
+			    ${TERRASCAN_IMAGE} scan -i terraform -t aws --recursive > terrascan_report.txt || true
+			"""
+			
+			sh "cat terrascan_report.txt"
                     }
                     
 		    echo "--- REPORTE GENERADO ---"
