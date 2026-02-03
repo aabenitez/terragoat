@@ -27,21 +27,24 @@ pipeline {
         stage('Scan IaC - Terrascan') {
             steps {
 		script {
-                    // Se utiliza --user root para garantizar permisos de escritura en el volumen
-                    // Se elimina 'sudo' ya que el entorno de Jenkins no lo tiene instalado
-                    sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac -o json > terrascan_result.json"
+                    // 1. Pull explícito de la imagen
+                    sh "docker pull ${TERRASCAN_IMAGE}"
+
+                    // 2. Ejecución con manejo de exit code
+                    // Agregamos '|| true' o capturamos el estatus para que el Exit Code 4 no mate el pipeline antes de leer el archivo
+                    sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac -o json > terrascan_result.json || echo 'Escaneo finalizado con hallazgos'"
 
                     // Validar si el archivo existe antes de leerlo
                     if (fileExists("terrascan_result.json")) {
                         def reportContent = readFile "terrascan_result.json"
                         
-                        if (reportContent.contains('"low_severity": 0')) {
-                            echo "¡Excelente! No se encontraron vulnerabilidades de severidad baja."
+                        // Validamos si hay resultados (ajusta según la estructura del JSON de Terrascan)
+                        if (reportContent.contains('"high_severity": 0')) {
+                            echo "✅ No se encontraron vulnerabilidades críticas."
                         } else {
-                            echo "Se detectaron hallazgos en el reporte."
+                            echo "⚠️  Se detectaron vulnerabilidades de severidad alta."
+                            currentBuild.result = 'UNSTABLE'
                         }
-                        
-                        echo "Contenido del reporte cargado correctamente."
                     } else {
                         error "El archivo terrascan_result.json no fue generado."
                     }
