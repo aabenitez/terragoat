@@ -34,7 +34,7 @@ pipeline {
 	                sh "ls -R ."
 
 			sh """
-                            docker run --rm -v \$(pwd):/iac -w /iac \
+                            docker run --rm --user root -v \$(pwd):/iac -w /iac \
                             ${TERRASCAN_IMAGE} scan -i terraform -d /iac/aws -t aws > terrascan_report.txt 2>&1 || true
                         """   
 
