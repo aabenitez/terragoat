@@ -38,11 +38,7 @@ pipeline {
                     //sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac -o json > terrascan_result.json || echo 'Escaneo finalizado con hallazgos'"
 
 		    // Cambiamos el montaje al WORKSPACE completo para asegurar visibilidad
-		    sh """
-		        docker run --rm --user root \
-		        -v ${WORKSPACE}:/iac \
-		        ${TERRASCAN_IMAGE} scan -t aws -d /iac --recursive -o json > terrascan_result.json || echo 'Escaneo finalizado'
-		    """
+		    sh "docker run --rm --user root -v ${WORKSPACE}:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac --recursive -o json > terrascan_result.json || echo 'Escaneo finalizado'"
 
                     // Validar si el archivo existe antes de leerlo
                     if (fileExists("terrascan_result.json")) {
