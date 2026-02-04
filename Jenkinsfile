@@ -35,7 +35,7 @@ pipeline {
             steps {
                 script {
                     echo "--- Archivo: s3.tf ---"                   
-                    sh "grep -C 5 'web_host_storage' terraform/aws/s3.tf"
+                    sh "grep -C 5 'web_host_storage' terraform/aws/s3.tf || true"
                     
                     echo "--- Iniciando Escaneo ---"
                     sh "docker run ${DOCKER_ARGS} ${TERRASCAN_IMAGE} scan -i terraform -t aws -d terraform/aws --verbose || true"
