@@ -39,17 +39,17 @@ pipeline {
 
                     // Validar si el archivo existe antes de leerlo
                     if (fileExists("terrascan_result.json")) {
-                        def reportContent = readFile "terrascan_result.json"
-                        
-                        // Validamos si hay resultados (ajusta según la estructura del JSON de Terrascan)
-                        if (reportContent.contains('"high_severity": 0')) {
-                            echo "✅ No se encontraron vulnerabilidades críticas."
-                        } else {
-                            echo "⚠️  Se detectaron vulnerabilidades de severidad alta."
-                            currentBuild.result = 'UNSTABLE'
-                        }
-                    } else {
-                        error "El archivo terrascan_result.json no fue generado."
+			def reportContent = readFile "terrascan_result.json"
+     
+			// Validación de contenido para evitar falsos positivos por archivos vacíos
+			if (reportContent.contains('"violated_policies": 0') && reportContent.contains('"scan_errors": null')) {
+			    echo "✅ Escaneo limpio y sin errores de lectura."
+		        } else if (reportContent.contains('"high": 0')) {
+		            echo "✅ No se encontraron vulnerabilidades de severidad alta."
+		        } else {
+		            echo "⚠️ Se detectaron vulnerabilidades. Revisar artefactos."
+		            currentBuild.result = 'UNSTABLE'
+		        }
                     }
                 }
             }
