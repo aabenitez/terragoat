@@ -34,11 +34,9 @@ pipeline {
 		    //sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac alpine ls -R /iac"
 
                     // 2. Ejecución con manejo de exit code
-                    // Agregamos '|| true' o capturamos el estatus para que el Exit Code 4 no mate el pipeline antes de leer el archivo
-                    //sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac -o json > terrascan_result.json || echo 'Escaneo finalizado con hallazgos'"
 
 		    // Cambiamos el montaje al WORKSPACE completo para asegurar visibilidad
-		    sh "docker run --rm --user root -v ${WORKSPACE}:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac --recursive -o json > terrascan_result.json || echo 'Escaneo finalizado'"
+		    sh "docker run --rm --user root -v ${WORKSPACE}:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac --recursive -o json > terrascan_result.json 2>&1 || true "
 
                     // Validar si el archivo existe antes de leerlo
                     if (fileExists("terrascan_result.json")) {
