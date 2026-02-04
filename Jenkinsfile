@@ -31,19 +31,26 @@ pipeline {
                     sh "docker pull ${TERRASCAN_IMAGE}"
 
 		    // Verificación en una sola línea, para ver si terrascan puede ver los archivos.
-		    sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac alpine ls -R /iac"
+		    //sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac alpine ls -R /iac"
 
                     // 2. Ejecución con manejo de exit code
                     // Agregamos '|| true' o capturamos el estatus para que el Exit Code 4 no mate el pipeline antes de leer el archivo
-                    sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac -o json > terrascan_result.json || echo 'Escaneo finalizado con hallazgos'"
+                    //sh "docker run --rm --user root -v ${WORKSPACE}/terraform:/iac ${TERRASCAN_IMAGE} scan -t aws -d /iac -o json > terrascan_result.json || echo 'Escaneo finalizado con hallazgos'"
+
+		    // Cambiamos el montaje al WORKSPACE completo para asegurar visibilidad
+		    sh """
+		        docker run --rm --user root \
+		        -v ${WORKSPACE}:/iac \
+		        ${TERRASCAN_IMAGE} scan -t aws -d /iac --recursive -o json > terrascan_result.json || echo 'Escaneo finalizado'
+		    """
 
                     // Validar si el archivo existe antes de leerlo
                     if (fileExists("terrascan_result.json")) {
 			def reportContent = readFile "terrascan_result.json"
      
-			// Validación de contenido para evitar falsos positivos por archivos vacíos
-			if (reportContent.contains('"violated_policies": 0') && reportContent.contains('"scan_errors": null')) {
-			    echo "✅ Escaneo limpio y sin errores de lectura."
+			if (reportContent.contains('"iac_type": ""') || reportContent.contains('no terraform config files')) {
+		            echo "❌ ERROR: Terrascan no encontró archivos para analizar. Revisa las rutas."
+		            currentBuild.result = 'FAILURE'
 		        } else if (reportContent.contains('"high": 0')) {
 		            echo "✅ No se encontraron vulnerabilidades de severidad alta."
 		        } else {
