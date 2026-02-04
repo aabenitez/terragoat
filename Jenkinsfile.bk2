@@ -38,7 +38,13 @@ pipeline {
                     sh "grep -C 5 'web_host_storage' terraform/aws/s3.tf"
                     
                     echo "--- Iniciando Escaneo ---"
-                    sh "docker run ${DOCKER_ARGS} ${TERRASCAN_IMAGE} scan -i terraform -t aws -d terraform/aws --verbose || true"
+                    sh """
+                        docker run ${DOCKER_ARGS} ${TERRASCAN_IMAGE} scan \
+                        -i terraform \
+                        -t aws \
+                        -d terraform/aws \
+                        --verbose || true
+                    """
                 }
             }
         }
