@@ -37,6 +37,9 @@ resource "aws_s3_bucket_object" "data_object" {
     git_repo             = "terragoat"
     yor_trace            = "a7f01cc7-63c2-41a8-8555-6665e5e39a64"
   })
+
+  server_side_encryption = "AES256" #Se agrega encriptación del lado servidor.
+
 }
 
 resource "aws_s3_bucket" "financials" {
