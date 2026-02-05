@@ -31,38 +31,32 @@ pipeline {
             }
         }
 
-stage('Scan IaC - Terrascan') {
+        stage('Scan IaC - Terrascan') {
             steps {
                 script {
                     echo "--- 🕵️‍♂️ Verificando Archivos en Jenkins ---"
-                    // Tu grep estaba bien, confirmamos que el archivo existe en el workspace
                     sh "grep -C 5 'web_host_storage' terraform/aws/ec2.tf"
                     
-                    echo "--- Preparando Contenedor Terrascan ---"
-                    // 1. Definimos un nombre único para el contenedor
                     def containerName = "terrascan-${BUILD_NUMBER}"
+                    // Definimos el comando EXACTO que queremos correr dentro del contenedor
+                    def scanCmd = "/go/bin/terrascan scan -i terraform -t aws -d /data/terraform/aws --verbose"
                     
                     try {
-                        // 2. Creamos el contenedor (sin arrancarlo aún)
-                        sh "docker create --name ${containerName} --entrypoint /bin/sh ${TERRASCAN_IMAGE}"
+                        echo "--- Creando Contenedor con el comando preparado ---"
+                        // 1. CREATE: Pasamos el comando aquí usando 'sh -c'
+                        // Esto le dice al contenedor: "Cuando arranques, ejecuta esto"
+                        sh "docker create --name ${containerName} --entrypoint /bin/sh ${TERRASCAN_IMAGE} -c '${scanCmd}'"
                         
-                        // 3. COPIAMOS los archivos del Workspace de Jenkins AL contenedor
-                        // Esto evita el problema de los volúmenes en Docker-in-Docker
+                        echo "--- Copiando Archivos ---"
+                        // 2. CP: Copiamos los archivos
                         sh "docker cp . ${containerName}:/data"
                         
                         echo "--- Ejecutando Escaneo ---"
-                        // 4. Ejecutamos el comando dentro del contenedor ya cargado con los archivos
-                        // Nota: Usamos 'docker start -a' para ver la salida (attach)
-                        sh """
-                            docker start -a ${containerName} \
-                            /go/bin/terrascan scan \
-                            -i terraform \
-                            -t aws \
-                            -d /data/terraform/aws \
-                            --verbose || true
-                        """
+                        // 3. START: Solo arrancamos (el comando ya está inyectado desde el paso 1)
+                        // '-a' es para adjuntar la salida (attach) y ver los logs en Jenkins
+                        sh "docker start -a ${containerName}"
+                        
                     } finally {
-                        // 5. Limpieza: Borramos el contenedor siempre
                         sh "docker rm -f ${containerName} || true"
                     }
                 }
