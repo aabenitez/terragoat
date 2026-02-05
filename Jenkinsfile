@@ -26,7 +26,7 @@ pipeline {
                     branches: [[name: '*/master']],
                     doGenerateSubmoduleConfigurations: false,
                     extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]],
-                    userRemoteConfigs: [[url: 'https://github.com/pablotpy/terragoat-fix']] 
+                    userRemoteConfigs: [[url: 'https://github.com/aabenitez/terragoat']] 
                 ])
             }
         }
