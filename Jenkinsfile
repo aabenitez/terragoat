@@ -31,34 +31,43 @@ pipeline {
             }
         }
 
-        stage('Scan IaC - Terrascan') {
+        stage('Scan IaC - Terrascan JSON') {
             steps {
                 script {
-                    echo "--- 🕵️‍♂️ Verificando Archivos en Jenkins ---"
-                    sh "grep -C 5 'web_host_storage' terraform/aws/ec2.tf"
-                    
                     def containerName = "terrascan-${BUILD_NUMBER}"
-                    // Definimos el comando EXACTO que queremos correr dentro del contenedor
-                    def scanCmd = "/go/bin/terrascan scan -i terraform -t aws -d /data/terraform/aws --verbose"
+                    def jsonFile = "terrascan_results.json"
                     
+                    // Comandos concatenados:
+                    // 1. Ejecuta el scan
+                    // 2. -o json: Formato JSON
+                    // 3. > /data/...: Guarda el resultado en un archivo DENTRO del contenedor
+                    // 4. || true: Evita que Jenkins marque error si Terrascan encuentra vulnerabilidades (queremos el reporte igual)
+                    def scanCmd = "/go/bin/terrascan scan -i terraform -t aws -d /data/terraform/aws -o json > /data/${jsonFile} || true"
+
                     try {
-                        echo "--- Creando Contenedor con el comando preparado ---"
-                        // 1. CREATE: Pasamos el comando aquí usando 'sh -c'
-                        // Esto le dice al contenedor: "Cuando arranques, ejecuta esto"
+                        echo "--- Configurando Contenedor ---"
+                        // Creamos el contenedor preparado para ejecutar el comando y guardar el archivo
                         sh "docker create --name ${containerName} --entrypoint /bin/sh ${TERRASCAN_IMAGE} -c '${scanCmd}'"
                         
-                        echo "--- Copiando Archivos ---"
-                        // 2. CP: Copiamos los archivos
+                        echo "--- Copiando Código Fuente al Contenedor ---"
                         sh "docker cp . ${containerName}:/data"
                         
-                        echo "--- Ejecutando Escaneo ---"
-                        // 3. START: Solo arrancamos (el comando ya está inyectado desde el paso 1)
-                        // '-a' es para adjuntar la salida (attach) y ver los logs en Jenkins
+                        echo "--- Ejecutando Escaneo y Generando JSON ---"
                         sh "docker start -a ${containerName}"
+                        
+                        echo "--- Extrayendo Reporte JSON hacia Jenkins ---"
+                        // COPIAR DESDE EL CONTENEDOR HACIA EL WORKSPACE
+                        sh "docker cp ${containerName}:/data/${jsonFile} ./${jsonFile}"
+                        
+                        // Opcional: Imprimir el JSON en la consola también para verlo rápido
+                        sh "cat ${jsonFile}"
                         
                     } finally {
                         sh "docker rm -f ${containerName} || true"
                     }
+                    
+                    // Este paso 'guarda' el archivo en la interfaz de Jenkins para que puedas descargarlo
+                    archiveArtifacts artifacts: jsonFile, allowEmptyArchive: true
                 }
             }
         }
